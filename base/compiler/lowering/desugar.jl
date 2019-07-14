@@ -277,6 +277,22 @@ function expand_hvcat(ex)
     end
 end
 
+function expand_and(ex)
+    arg1 = ex.args[1]
+    arg2 = ex.args[2]
+    Expr(:if, arg1,
+         arg2 isa Expr && arg2.head == :&& ? expand_and(arg2) : arg2,
+         false)
+end
+
+function expand_or(ex)
+    arg1 = ex.args[1]
+    arg2 = ex.args[2]
+    Expr(:if, arg1,
+         true,
+         arg2 isa Expr && arg2.head == :|| ? expand_or(arg2) : arg2)
+end
+
 #-------------------------------------------------------------------------------
 # Expansion entry point
 
@@ -369,9 +385,9 @@ function expand_forms(ex)
     elseif head == :for
         expand_todo(ex) # expand-for
     elseif head == :&&
-        expand_todo(ex) # expand-and
+        expand_forms(expand_and(ex))
     elseif head == :||
-        expand_todo(ex) # expand-or
+        expand_forms(expand_or(ex))
     elseif head in (:(+=), :(-=), :(*=), :(.*=), :(/=), :(./=), :(//=), :(.//=),
                     :(\=), :(.\=), :(.+=), :(.-=), :(^=), :(.^=), :(÷=), :(.÷=),
                     :(%=), :(.%=), :(|=), :(.|=), :(&=), :(.&=), :($=), :(⊻=),
