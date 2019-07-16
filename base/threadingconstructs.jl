@@ -1,6 +1,6 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
-export threadid, nthreads, @threads
+export threadid, nthreads, @threads, @par
 
 """
     Threads.threadid()
@@ -100,5 +100,25 @@ macro threads(args...)
         return _threadsfor(ex.args[1], ex.args[2])
     else
         throw(ArgumentError("unrecognized argument to @threads"))
+    end
+end
+
+"""
+    Threads.@par expr
+
+Create and run a [`Task`](@ref) on any available thread. To wait for the task to
+finish, call [`wait`](@ref) on the result of this macro, or call [`fetch`](@ref)
+to wait and then obtain its return value.
+
+!!! compat "Julia 1.3"
+    This macro is available as of Julia 1.3.
+"""
+macro par(expr)
+    thunk = esc(:(()->($expr)))
+    quote
+        local task = Task($thunk)
+        task.sticky = false
+        schedule(task)
+        task
     end
 end
